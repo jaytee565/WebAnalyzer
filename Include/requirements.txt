@@ -1,0 +1,6 @@
+#modules to download
+
+requests>> 2.32.3
+bs4>> 4.13.4
+ollama>> 0.4.8
+tqdm>>4.67.1
