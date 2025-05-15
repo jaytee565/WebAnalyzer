@@ -3,7 +3,7 @@ import concurrent.futures
 from tqdm import tqdm
 from config import USE_STREAMING
 from scraper import scrape_website, extract_main_content
-from analyzer import detect_category, analyze_with_ollama
+from analyzer import detect_category, analyze_with_ollama, text_to_csv
 from file_handler import save_analysis_to_file, save_batch_results, create_folders
 from utils import validate_url
 
@@ -27,13 +27,13 @@ def process_url(url):
         
         # Classify content
         category = detect_category(website_text ,validated_url)
-        print(f"URL: {validated_url} - Category: {category}")
         
         # Analyze content
         analysis_text = analyze_with_ollama(website_text, category, validated_url)
         
+        analysis_csv = text_to_csv(analysis_text, existing_csv=None, delimiter=',')
         # Save results
-        success, result = save_analysis_to_file(analysis_text, category, validated_url)
+        success, result = save_analysis_to_file(analysis_csv, category, validated_url)
         
         if success:
             return validated_url, True, result

@@ -22,15 +22,26 @@ def create_folders():
                 writer = csv.writer(f)
                 writer.writerow(['URL', 'Success', 'Analysis'])  # Headers
 
+import csv
+import os
+import io
+
 def save_analysis_to_file(analysis_text, category, url):
-    """Append analysis to the category CSV"""
+    """Append parsed CSV analysis to the category CSV file"""
     csv_path = os.path.join(BASE_SAVE_DIR, f"{category}.csv")
 
     try:
+        # Parse analysis_text into actual CSV rows
+        csv_reader = csv.reader(io.StringIO(analysis_text), delimiter = ";")
+        rows = list(csv_reader)
+
+        # Append rows to the CSV file
         with open(csv_path, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow([url, True, analysis_text])
+            for row in rows:
+                writer.writerow(row)
         return True, csv_path
+
     except Exception as e:
         return False, str(e)
 
