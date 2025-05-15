@@ -1,5 +1,6 @@
 import os
 import csv
+import io
 from config import BASE_SAVE_DIR, CACHE_DIR
 from utils import is_cache_expired
 
@@ -15,16 +16,12 @@ def create_folders():
 
     # No need to create category folders, just ensure base exists
     # Optionally, create empty CSVs with headers
-    for category in CATEGORIES.keys():
-        category_csv = os.path.join(BASE_SAVE_DIR, f"{category}.csv")
+    for k,v in CATEGORIES.items():
+        category_csv = os.path.join(BASE_SAVE_DIR, f"{k}.csv")
         if not os.path.exists(category_csv):
             with open(category_csv, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                writer.writerow(['URL', 'Success', 'Analysis'])  # Headers
-
-import csv
-import os
-import io
+                writer.writerow(v)  # Headers
 
 def save_analysis_to_file(analysis_text, category, url):
     """Append parsed CSV analysis to the category CSV file"""
@@ -34,7 +31,7 @@ def save_analysis_to_file(analysis_text, category, url):
         # Parse analysis_text into actual CSV rows
         csv_reader = csv.reader(io.StringIO(analysis_text), delimiter = ";")
         rows = list(csv_reader)
-
+        rows.insert(0, [url]) #include url inside row
         # Append rows to the CSV file
         with open(csv_path, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)

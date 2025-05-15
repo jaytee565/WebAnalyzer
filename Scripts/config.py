@@ -2,14 +2,15 @@ import os
 
 # Configuration variables
 
+
 CATEGORIES = {
-    "Technology": [
-        "Product name", 
-        "Target audience for the technology", 
-        "Key technologies", 
-        "Technical specifications or features highlighted", 
-        "Any release dates or version information", 
-        "Contact information"
+    "Technology":[
+        "1. Product name",
+        "2. Target audience for the technology",
+        "3. Key technologies",
+        "4. Technical specifications or features highlighted",
+        "5. Any release dates or version information",
+        "6. Contact information",
     ],
     "News": [
         "1. Publication dates of the articles",
@@ -79,6 +80,7 @@ CATEGORIES = {
         "3. Display the Contact information"
     ]
 }
+
 
 
 # Hard-coded base directory for saving files (preserved as requested)

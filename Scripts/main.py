@@ -23,6 +23,7 @@ def main():
     
     choice = input("Select an option (1/2/3): ")
     
+
     if choice == "1":
         # Single URL mode
         url = input("Enter the URL to analyze: ").strip()
