@@ -21,26 +21,56 @@ def create_folders():
         if not os.path.exists(category_csv):
             with open(category_csv, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                writer.writerow(v)  # Headers
+                writer.writerow([f"Category:{k}"])
+                # Create header with question texts without the numbering
+                headers = []
+                for item in v:
+                    if ". " in item:  # Split by first period and space
+                        headers.append(item.split(". ", 1)[1])
+                    else:
+                        headers.append(item)  # Fallback if no numbered format
+                writer.writerow(headers)  # Headers
 
 def save_analysis_to_file(analysis_text, category, url):
     """Append parsed CSV analysis to the category CSV file"""
     csv_path = os.path.join(BASE_SAVE_DIR, f"{category}.csv")
 
     try:
-        # Parse analysis_text into actual CSV rows
-        csv_reader = csv.reader(io.StringIO(analysis_text), delimiter = ";")
-        rows = list(csv_reader)
-        rows.insert(0, [url]) #include url inside row
-        # Append rows to the CSV file
+        # Extract just the answer part before any footer
+        answers_part = analysis_text.split("\n\n===========")[0].strip()
+        
+        # Process the result as a CSV row directly
+        # Clean up quotes if needed
+        answers_part = answers_part.replace('""', '"')
+        
+        # Try to parse as CSV
+        csv_reader = csv.reader([answers_part])
+        row_data = next(csv_reader, None)
+        
+        # If parsing failed or row is empty, try simple splitting
+        if not row_data:
+            row_data = [item.strip('"') for item in answers_part.split(',')]
+        
+        # Prepend the URL as first column for tracking
+        row_data = [url] + row_data
+        
+        # Append to the CSV file
         with open(csv_path, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            for row in rows:
-                writer.writerow(row)
+            writer.writerow(row_data)
+        
         return True, csv_path
 
     except Exception as e:
-        return False, str(e)
+        print(f"Error saving analysis: {e}")
+        # Fallback method - just add raw text
+        try:
+            with open(csv_path, 'a', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow([url, analysis_text.replace('\n', ' ')])
+            return True, csv_path
+        except Exception as e2:
+            return False, f"Failed to save analysis: {str(e2)}"
 
 def save_batch_results(results):
     """Save overall batch summary to a CSV"""

@@ -26,14 +26,13 @@ def process_url(url):
             return validated_url, False, "Failed to extract content"
         
         # Classify content
-        category = detect_category(website_text ,validated_url)
+        category = detect_category(website_text, validated_url)
         
         # Analyze content
         analysis_text = analyze_with_ollama(website_text, category, validated_url)
         
-        analysis_csv = text_to_csv(analysis_text, existing_csv=None, delimiter=',')
         # Save results
-        success, result = save_analysis_to_file(analysis_csv, category, validated_url)
+        success, result = save_analysis_to_file(analysis_text, category, validated_url)
         
         if success:
             return validated_url, True, result
@@ -88,15 +87,8 @@ def batch_process_urls(urls):
 
 def process_single_url(url):
     """Process a single URL with streaming output"""
-    from config import USE_STREAMING
-    #global USE_STREAMING
-    
     start_time = time.time()
     create_folders()
-    
-    # Set streaming mode for single URL analysis
-    original_streaming = USE_STREAMING
-    USE_STREAMING = True
     
     try:
         # Validate URL
@@ -106,25 +98,30 @@ def process_single_url(url):
             return False
         
         # Scrape website
+        print("Scraping website...")
         html_content = scrape_website(validated_url)
         if not html_content:
             print("Failed to scrape the website.")
             return False
         
         # Extract content
+        print("Extracting main content...")
         website_text = extract_main_content(html_content)
         if not website_text:
             print("Failed to extract content.")
             return False
         
         # Detect category
+        print("Detecting category...")
         category = detect_category(website_text, validated_url)
         print(f"\n✔ Detected Category: {category}")
         
         # Analyze website
+        print(f"Analyzing website as {category}...")
         analysis_text = analyze_with_ollama(website_text, category, validated_url)
         
         # Save analysis
+        print("Saving analysis...")
         success, file_path = save_analysis_to_file(analysis_text, category, validated_url)
         if success:
             print(f"\nAnalysis saved to: {file_path}")
@@ -138,6 +135,3 @@ def process_single_url(url):
     except Exception as e:
         print(f"\nAn error occurred: {str(e)}")
         return False
-    finally:
-        # Restore original streaming setting
-        USE_STREAMING = original_streaming

@@ -2,6 +2,8 @@ import os
 import io
 import time
 import ollama
+import json
+import ast
 from config import CATEGORIES, MODEL_NAME, CACHE_DIR
 from utils import get_filename_from_url, is_cache_expired
 
@@ -80,18 +82,26 @@ def analyze_with_ollama(website_text, category, url):
     """Analyze website content using Ollama"""
     analysis_points = CATEGORIES.get(category, CATEGORIES['Default'])
     
+    # Create explicit question list for more reliable parsing
+    questions = [q.split(". ", 1)[1] if ". " in q else q for q in analysis_points]
+    
     # Optimize by reducing prompt size but keeping structure
     prompt = f"""
-Analyze this {category} category website based on:
+Analyze this {category} category website based on the questions:
 {analysis_points}
 
-Only use information from the provided text. Be concise and specific. Do not add extra questions or words for e.g. "here is the analysis", just reply the questions.Do not go to the next line unneccessarily. Put the same information in the same row. 
-Structure your output as follows and fill it in with the content of the website:
-"Header1"; "Header 2"; "Header 3"; and as follows
-"Answer1"; "Answer2"; "Answer3" and as follows
+Only use information from the provided text. Be concise and specific. 
+Structure your output EXACTLY as a comma-separated list of answers, ONE answer per question, in the order given.
+If there is no relevant content for a question, put a '-' as the answer.
+DO NOT include the questions themselves in your response.
+DO NOT include line breaks in your response.
+DO NOT include extra text or explanations.
+
+Example format of your response:
+"Answer1","Answer2","Answer3"
 
 Website content:
-{website_text}
+{website_text}  # Limiting content size for token efficiency
 """
     try:
         messages = [
@@ -101,32 +111,37 @@ Website content:
         
         # Capture the analysis
         analysis_buffer = io.StringIO()
-        analysis_buffer.write(f"=========== Website Analysis: {url} ===========\n\n")
-        analysis_buffer.write(f"Category: {category}\n\n")
-        
 
         response = ollama.chat(
                 model=MODEL_NAME,
                 messages=messages
             )
-        content = response['message']['content']
-        analysis_buffer.write(content)
+        content = response['message']['content'].strip()
         print(content)
+        
+        # More robust output processing - handle the response as CSV directly
+        # This avoids issues with dictionary parsing
+        processed_content = content
+        
+        # Remove any explanatory text if the model still includes it
+        if not processed_content.startswith('"') and '"' in processed_content:
+            processed_content = processed_content[processed_content.find('"'):]
+        
+        # Pass through the content directly to the buffer - we'll parse as CSV later
+        analysis_buffer.write(processed_content)
         
         # Add footer with timestamp
         analysis_buffer.write(f"\n\n=========== Analysis completed at {time.strftime('%Y-%m-%d %H:%M:%S')} ===========\n")
         analysis_buffer.write(f"Analyzed URL: {url}")
-        
+
         return analysis_buffer.getvalue()
+       
     except Exception as e:
         error_msg = f"\nError during analysis: {str(e)}"
+        print(f"Analysis error: {e}")
         return error_msg
     
-import csv
-import io
-from collections import OrderedDict
-
-def text_to_csv(text, existing_csv=None, delimiter=':'):
+def text_to_csv(text, existing_csv=None, delimiter=','):
     """
     Convert unstructured text data into CSV format.
     If an existing CSV is provided, it adds the new product as an additional column.
@@ -139,101 +154,6 @@ def text_to_csv(text, existing_csv=None, delimiter=':'):
     Returns:
         str: CSV formatted data
     """
-    # Parse the input text into field-value pairs
-    fields = OrderedDict()
-    current_field = None
-    current_value = []
-    
-    lines = text.strip().split('\n')
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        # Check if this line starts a new field (contains a colon)
-        if ':' in line and not line.startswith('*') and not line.startswith('•'):
-            # If we have a previous field, add it to our dictionary
-            if current_field is not None:
-                value_text = ' '.join(current_value)
-                fields[current_field] = value_text
-                
-            # Start a new field
-            parts = line.split(':', 1)
-            current_field = parts[0].strip()
-            current_value = [parts[1].strip()] if len(parts) > 1 and parts[1].strip() else []
-        else:
-            # Continue with the current field
-            if line.startswith('*') or line.startswith('•'):
-                # Handle bullet points - replace with a clean bullet
-                line = line.replace('*', '•').strip()
-            current_value.append(line)
-    
-    # Add the last field if it exists
-    if current_field is not None and (current_value or current_field):
-        value_text = ' '.join(current_value)
-        fields[current_field] = value_text
-    
-    # Get the product name as identifier
-    product_name = fields.get('Product name', 'Unknown Product')
-    
-    # If there's an existing CSV, merge with it
-    if existing_csv:
-        # Parse existing CSV
-        existing_data = {}
-        existing_fieldnames = []
-        existing_products = []
-        
-        csv_reader = csv.reader(io.StringIO(existing_csv), delimiter=delimiter)
-        rows = list(csv_reader)
-        
-        if rows:
-            # First row contains field names
-            existing_fieldnames = rows[0][1:]  # Skip the first cell which is "Field"
-            
-            # Build dictionary with existing data
-            for row in rows[1:]:
-                if row:  # Skip empty rows
-                    field_name = row[0]
-                    existing_data[field_name] = row[1:]
-                    
-            # Get existing product names
-            header_row = rows[0]
-            existing_products = header_row[1:]
-    else:
-        # Start a new CSV
-        existing_data = {}
-        existing_fieldnames = []
-        existing_products = []
-    
-    # Create output CSV
-    output = io.StringIO()
-    csv_writer = csv.writer(output, delimiter=delimiter)
-    
-    # Write header row with all product names
-    all_products = existing_products + [product_name]
-    csv_writer.writerow(['Field'] + all_products)
-    
-    # Combine all unique field names
-    all_fields = list(fields.keys())
-    for field in existing_data:
-        if field not in all_fields:
-            all_fields.append(field)
-    
-    # Write data rows
-    for field in all_fields:
-        row = [field]
-        
-        # Add values from existing products
-        for _ in existing_products:
-            product_values = existing_data.get(field, [])
-            if product_values and len(product_values) > 0:
-                row.append(product_values.pop(0))
-            else:
-                row.append('')
-        
-        # Add value for the new product
-        row.append(fields.get(field, ''))
-        
-        csv_writer.writerow(row)
-    
-    return output.getvalue()
+    # This is a simplified version that just returns the input
+    # since we're now handling CSV directly in analyze_with_ollama
+    return text
