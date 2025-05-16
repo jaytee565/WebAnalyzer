@@ -90,15 +90,17 @@ def analyze_with_ollama(website_text, category, url):
 Analyze this {category} category website based on the questions:
 {analysis_points}
 
-Only use information from the provided text. Be concise and specific. 
-Structure your output EXACTLY as a comma-separated list of answers, ONE answer per question, in the order given.
-If there is no relevant content for a question, put a '-' as the answer.
-DO NOT include the questions themselves in your response.
-DO NOT include line breaks in your response.
-DO NOT include extra text or explanations.
+Only use information from the provided text. Be concise and specific.
+VERY IMPORTANT: Each answer MUST be enclosed in double quotes. 
+If your answer contains any commas, it MUST be properly quoted to avoid CSV parsing issues.
 
-Example format of your response:
-"Answer1","Answer2","Answer3"
+IMPORTANT: Structure your output as a list of JSON objects, one object per question, in this format:
+[{{"answer": "Your answer to question 1"}}, {{"answer": "Your answer to question 2"}}, ...]
+
+If there is no relevant content for a question, use {{"answer": "-"}}
+DO NOT include the questions themselves in your response.
+DO NOT include line breaks between the JSON objects.
+DO NOT include extra text or explanations.
 
 Website content:
 {website_text}  # Limiting content size for token efficiency
@@ -119,16 +121,36 @@ Website content:
         content = response['message']['content'].strip()
         print(content)
         
-        # More robust output processing - handle the response as CSV directly
-        # This avoids issues with dictionary parsing
-        processed_content = content
+        # Process the response as JSON to properly handle commas in answers
+        # Extract just what appears to be the JSON array
+        json_start = content.find('[')
+        json_end = content.rfind(']') + 1
         
-        # Remove any explanatory text if the model still includes it
-        if not processed_content.startswith('"') and '"' in processed_content:
-            processed_content = processed_content[processed_content.find('"'):]
-        
-        # Pass through the content directly to the buffer - we'll parse as CSV later
-        analysis_buffer.write(processed_content)
+        if json_start >= 0 and json_end > json_start:
+            json_content = content[json_start:json_end]
+            try:
+                # Parse the JSON array
+                answers_objects = json.loads(json_content)
+                
+                # Extract just the answers as a list
+                answer_values = []
+                for obj in answers_objects:
+                    if isinstance(obj, dict) and "answer" in obj:
+                        answer_values.append(obj["answer"])
+                    else:
+                        answer_values.append("-")  # Fallback for malformed objects
+                
+                # Join with special delimiter that is unlikely to appear in responses
+                # We'll use "|||" as a separator which we can safely split on later
+                processed_content = "|||".join(answer_values)
+                analysis_buffer.write(processed_content)
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                print("JSON parsing failed, using raw content")
+                analysis_buffer.write(content)
+        else:
+            # Fallback if JSON structure not found
+            analysis_buffer.write(content)
         
         # Add footer with timestamp
         analysis_buffer.write(f"\n\n=========== Analysis completed at {time.strftime('%Y-%m-%d %H:%M:%S')} ===========\n")

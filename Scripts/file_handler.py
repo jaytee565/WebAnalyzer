@@ -22,6 +22,7 @@ def create_folders():
             with open(category_csv, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow([f"Category:{k}"])
+                writer.writerow([])
                 # Create header with question texts without the numbering
                 headers = []
                 for item in v:
@@ -39,24 +40,34 @@ def save_analysis_to_file(analysis_text, category, url):
         # Extract just the answer part before any footer
         answers_part = analysis_text.split("\n\n===========")[0].strip()
         
-        # Process the result as a CSV row directly
-        # Clean up quotes if needed
-        answers_part = answers_part.replace('""', '"')
-        
-        # Try to parse as CSV
-        csv_reader = csv.reader([answers_part])
-        row_data = next(csv_reader, None)
-        
-        # If parsing failed or row is empty, try simple splitting
-        if not row_data:
-            row_data = [item.strip('"') for item in answers_part.split(',')]
+        # Check if we have our special delimiter "|||" which means we used JSON parsing
+        if "|||" in answers_part:
+            # Split by our special delimiter
+            row_data = answers_part.split("|||")
+        else:
+            # Legacy CSV parsing as fallback
+            try:
+                # Clean up quotes if needed
+                answers_part = answers_part.replace('""', '"')
+                
+                # Try to parse as CSV
+                csv_reader = csv.reader([answers_part])
+                row_data = next(csv_reader, None)
+                
+                # If parsing failed or row is empty, try simple splitting
+                if not row_data:
+                    row_data = [item.strip('"') for item in answers_part.split(',')]
+            except:
+                # Last resort fallback - just use the whole text as a single column
+                row_data = [answers_part]
         
         # Prepend the URL as first column for tracking
         row_data = [url] + row_data
         
         # Append to the CSV file
         with open(csv_path, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
+            # Use a dialect that properly handles quoting
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(row_data)
         
         return True, csv_path
@@ -66,7 +77,7 @@ def save_analysis_to_file(analysis_text, category, url):
         # Fallback method - just add raw text
         try:
             with open(csv_path, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
+                writer = csv.writer(f, quoting=csv.QUOTE_ALL)
                 writer.writerow([url, analysis_text.replace('\n', ' ')])
             return True, csv_path
         except Exception as e2:
