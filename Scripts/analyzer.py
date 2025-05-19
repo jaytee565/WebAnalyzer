@@ -94,7 +94,7 @@ def analyze_with_ollama(website_text, category, url):
     - DO NOT answer any questions not listed.
     - Format your output exactly like the structure shown below.
     - If there is no relevant information in the content for a question, write: "- No information found."
-    - Do not output think.
+    - Do not output the <think>
 
     Output format (mandatory):
     1. [Exact Question 1]:
