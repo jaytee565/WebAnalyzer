@@ -82,10 +82,11 @@ def analyze_with_ollama(website_text, category, url):
     
     # Optimize by reducing prompt size but keeping structure
     prompt = f"""
-Analyze this {category} category website based on:
+Only analyze this {category} category website based on:
 {analysis_points}
 
-Only use information from the provided text. Be concise and specific. Do not add extra questions. Return the information in a csv format.
+Only use information from the provided text. Be concise and specific. Return one answer for one question.
+IMPORTANT: You must not add extra questions, only refer to the ones above. Return the information in a txt format.
 
 Website content:
 {website_text}
@@ -98,7 +99,6 @@ Website content:
         
         # Capture the analysis
         analysis_buffer = io.StringIO()
-        analysis_buffer.write(f"=========== Website Analysis: {url} ===========\n\n")
         analysis_buffer.write(f"Category: {category}\n\n")
         
         # Use streaming based on global setting
@@ -124,10 +124,7 @@ Website content:
             )
             content = response['message']['content']
             analysis_buffer.write(content)
-        
-        # Add footer with timestamp
-        analysis_buffer.write(f"\n\n=========== Analysis completed at {time.strftime('%Y-%m-%d %H:%M:%S')} ===========\n")
-        analysis_buffer.write(f"Analyzed URL: {url}")
+    
         
         return analysis_buffer.getvalue()
     except Exception as e:
