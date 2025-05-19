@@ -26,13 +26,13 @@ def process_url(url):
             return validated_url, False, "Failed to extract content"
         
         # Classify content
-        category = detect_category(website_text ,validated_url)
+        category = detect_category(website_text, validated_url)
         print(f"URL: {validated_url} - Category: {category}")
         
         # Analyze content
         analysis_text = analyze_with_ollama(website_text, category, validated_url)
         
-        # Save results
+        # Save results - this will now save both TXT and update the CSV
         success, result = save_analysis_to_file(analysis_text, category, validated_url)
         
         if success:
@@ -89,7 +89,6 @@ def batch_process_urls(urls):
 def process_single_url(url):
     """Process a single URL with streaming output"""
     from config import USE_STREAMING
-    #global USE_STREAMING
     
     start_time = time.time()
     create_folders()
@@ -124,10 +123,11 @@ def process_single_url(url):
         # Analyze website
         analysis_text = analyze_with_ollama(website_text, category, validated_url)
         
-        # Save analysis
+        # Save analysis - this will now save both TXT and update the CSV
         success, file_path = save_analysis_to_file(analysis_text, category, validated_url)
         if success:
             print(f"\nAnalysis saved to: {file_path}")
+            print(f"Analysis also added to {category}.csv")
         
         print(f"\nExecution Time: {time.time() - start_time:.2f} seconds")
         return success

@@ -1,7 +1,7 @@
 import os
 from config import BASE_SAVE_DIR, CACHE_DIR
 from utils import is_cache_expired
-from export_csv import process_txt_folder_to_csv
+from export_csv import create_csv_files, append_to_category_csv
 
 def create_folders():
     """Create base and cache directories"""
@@ -18,9 +18,12 @@ def create_folders():
         category_dir = os.path.join(BASE_SAVE_DIR, category)
         if not os.path.exists(category_dir):
             os.makedirs(category_dir)
+    
+    # Create CSV files for all categories
+    create_csv_files()
 
 def save_analysis_to_file(analysis_text, category, url):
-    """Save analysis to a file in the category folder"""
+    """Save analysis to a file in the category folder and update the category CSV"""
     # Create category folder if it doesn't exist
     category_dir = os.path.join(BASE_SAVE_DIR, category)
     if not os.path.exists(category_dir):
@@ -46,15 +49,20 @@ def save_analysis_to_file(analysis_text, category, url):
         filename = f"analysis_{int(time.time())}"
     
     file_path_txt = os.path.join(category_dir, f"{filename}.txt")
-    file_path_csv = os.path.join(category_dir, f"{filename}.csv")
     
     try:
+        # Save the TXT file
         with open(file_path_txt, 'w', encoding='utf-8') as f:
             f.write(f"URL: {url}\n\n")
             f.write(f"ANALYSIS:\n{analysis_text}")
-
-        process_txt_folder_to_csv(file_path_txt, file_path_csv)
-        return True, file_path_txt
+        
+        # Append to the category CSV file
+        csv_result = append_to_category_csv(url, analysis_text, category)
+        
+        if csv_result:
+            return True, file_path_txt
+        else:
+            return True, f"{file_path_txt} (CSV update failed)"
     except Exception as e:
         return False, str(e)
 

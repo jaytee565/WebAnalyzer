@@ -37,7 +37,7 @@ def detect_category(website_text, url):
         return cached_category
     
     # classify using url
-    sample_text = website_text[0:2000] if len(website_text)<2000 else website_text
+    sample_text = website_text[0:3000] if len(website_text)<3000 else website_text
     categories = ", ".join(CATEGORIES.keys())
     message = f"""
 As a classifier, identify the category of this website from its text.
@@ -82,14 +82,32 @@ def analyze_with_ollama(website_text, category, url):
     
     # Optimize by reducing prompt size but keeping structure
     prompt = f"""
-Only analyze this {category} category website based on:
-{analysis_points}
+    You are a professional website content analyst. Your task is to extract specific answers from a {category} website.
 
-Only use information from the provided text. Be concise and specific. Return one answer for one question.
-IMPORTANT: You must not add extra questions, only refer to the ones above. Return the information in a txt format.
+    Below are the exact analysis questions you must answer:
+    {analysis_points}
 
-Website content:
-{website_text}
+    Rules:
+    - Only use information from the provided text.
+    - DO NOT invent answers or speculate.
+    - DO NOT reword or summarize the questions.
+    - DO NOT answer any questions not listed.
+    - Format your output exactly like the structure shown below.
+    - If there is no relevant information in the content for a question, write: "- No information found."
+    - Do not output think.
+
+    Output format (mandatory):
+    1. [Exact Question 1]:
+    - Answer 1
+    - Answer 2
+
+    2. [Exact Question 2]:
+    - Answer 1
+
+    ...continue this format for all questions.
+
+    Website content:
+    {website_text}
 """
     try:
         messages = [

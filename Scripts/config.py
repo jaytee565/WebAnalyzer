@@ -4,31 +4,27 @@ import os
 CATEGORIES = {
     "Technology": """
 1. Product name
-2. Target audience for the technology  
+2. Description of product 
 3. Key technologies 
-4. Technical specifications or features highlighted  
-5. Any release dates or version information  
-6. Contact information  
+4. Additional information
+ 
 """,
     "News": """
 1. Publication dates of the articles  
 2. Main headlines and topics covered (Include important personnel or location)  
-3. Key facts from the articles  
-4. Sources cited or referenced  
+3. Sources cited or referenced
+4. Additional information
 """,
     "Sports": """
 1. Main sports or athletic activities featured  
 2. Key teams, athletes, or events mentioned  
 3. Recent results or upcoming events  
-4. Fan or community engagement information  
-5. Contact or venue information  
+4. Additional information
 """,
     "E-commerce": """
 1. Main product categories offered  
 2. Any special deals or promotions  
-3. Shipping or delivery information  
-4. Return policy highlights  
-5. Customer service contact details  
+3. Additional information 
 """,
     "Finance": """
 1. Financial services or products offered  
@@ -87,5 +83,5 @@ MAX_TEXT_LENGTH = 10000  # Limit text length to reduce token usage
 MAX_WORKERS = 4  # Number of concurrent processes/threads
 CACHE_DIR = os.path.join(BASE_SAVE_DIR, "_cache")  # Cache directory for category classifications
 USE_STREAMING = False  # Set to False for faster non-streaming responses
-MODEL_NAME = "llama3.2:1b"  # Model to use for inference
+MODEL_NAME = "qwen3:8b"  # Model to use for inference
 CACHE_EXPIRY_DAYS = 7  # Number of days before cache entries expire
