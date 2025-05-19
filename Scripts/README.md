@@ -1,4 +1,4 @@
-# Website Analyzer Documentation
+# Website Analyzer Documentation (Please use mac to run the code)
 
 <div align="center">
 <h3>A comprehensive tool for automated website analysis and categorization</h3>
@@ -264,3 +264,8 @@ graph TD
   - Raw text (TXT) for detailed analysis
   - Structured data (CSV) for data processing
   - Summary reports for batch operations
+
+## Areas for Improvement
+- Use Beautiful Soup to scrape website (Unable to scrape dynamically laoded webpages)
+- Requires large computation power due to big the usage of a big ollama model. --> Can try optimise code slightly better
+- Big ollama model has to be used to ensure accurate structured output
